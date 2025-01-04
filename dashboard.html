@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoConnect - Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 bg-green-800 w-64 transition-transform duration-200 ease-in-out">
+        <!-- Logo -->
+        <div class="flex items-center px-6 py-4">
+            <div class="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                <span class="text-white text-xl">E</span>
+            </div>
+            <h1 class="ml-3 text-white text-xl font-bold">EcoConnect</h1>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="mt-8 space-y-2 px-4">
+            <a href="#" class="flex items-center px-4 py-3 text-white bg-green-700 rounded-lg">
+                Dashboard
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-green-100 hover:bg-green-700 rounded-lg">
+                Waste Tracking
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-green-100 hover:bg-green-700 rounded-lg">
+                Initiatives
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-green-100 hover:bg-green-700 rounded-lg">
+                Businesses
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-8">
+            <div class="relative">
+                <input type="text" placeholder="Search..." 
+                    class="w-96 px-4 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div class="flex items-center">
+                <span class="mr-4 text-gray-700">John Doe</span>
+                <div class="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                    <span class="text-white">JD</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <!-- Total Waste Card -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-gray-500 mb-4">Total Waste Reduced</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-900" id="total-waste">1,234 kg</span>
+                </div>
+                <p class="text-green-500 text-sm mt-2">↑ 12% from last month</p>
+            </div>
+
+            <!-- Active Initiatives Card -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-gray-500 mb-4">Active Initiatives</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-900" id="active-initiatives">8</span>
+                </div>
+                <p class="text-gray-500 text-sm mt-2">3 upcoming events</p>
+            </div>
+
+            <!-- Community Rating Card -->
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <h3 class="text-gray-500 mb-4">Community Rating</h3>
+                <div class="flex items-baseline">
+                    <span class="text-3xl font-bold text-gray-900" id="community-rating">4.8/5.0</span>
+                </div>
+                <p class="text-gray-500 text-sm mt-2">Top 10% of users</p>
+            </div>
+        </div>
+
+        <!-- Waste Reduction Progress Chart -->
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-8">
+            <h3 class="text-gray-700 font-semibold mb-6">Waste Reduction Progress</h3>
+            <div id="chart" class="h-64">
+                <!-- Chart will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+            <h3 class="text-gray-700 font-semibold mb-6">Recent Activities</h3>
+            <div class="space-y-4" id="activities">
+                <!-- Activity items -->
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.1.2/recharts.min.js"></script>
+    <script>
+        // Check authentication
+        function checkAuth() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                window.location.href = '/index.html';
+            }
+            return token;
+        }
+
+        // Fetch waste tracking data
+        async function fetchWasteData() {
+            const token = checkAuth();
+            try {
+                // Fetch all logs
+                const logsResponse = await fetch('http://localhost:5000/api/waste/logs', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const logsData = await logsResponse.json();
+                console.log('Waste logs:', logsData);
+
+                // Fetch stats
+                const statsResponse = await fetch('http://localhost:5000/api/waste/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const statsData = await statsResponse.json();
+                console.log('Waste stats:', statsData);
+                
+                // Calculate total waste
+                const totalWaste = logsData.reduce((sum, log) => sum + log.amount, 0);
+                document.getElementById('total-waste').textContent = `${totalWaste.toFixed(1)} kg`;
+                
+                // Process logs for chart data
+                const groupedByDate = logsData.reduce((acc, log) => {
+                    const date = new Date(log.timestamp);
+                    const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!acc[monthYear]) {
+                        acc[monthYear] = 0;
+                    }
+                    acc[monthYear] += log.amount;
+                    return acc;
+                }, {});
+
+                const chartData = Object.entries(groupedByDate).map(([monthYear, amount]) => ({
+                    month: monthYear,
+                    amount: amount
+                })).sort((a, b) => a.month.localeCompare(b.month));
+
+                // Render chart using Recharts
+                const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } = Recharts;
+                
+                const chart = React.createElement(LineChart, {
+                    width: document.getElementById('chart').offsetWidth - 40,
+                    height: 250,
+                    data: chartData,
+                    margin: { top: 5, right: 30, left: 20, bottom: 5 }
+                }, [
+                    React.createElement(CartesianGrid, { strokeDasharray: "3 3" }),
+                    React.createElement(XAxis, { dataKey: "month" }),
+                    React.createElement(YAxis),
+                    React.createElement(Tooltip),
+                    React.createElement(Line, {
+                        type: "monotone",
+                        dataKey: "amount",
+                        stroke: "#22C55E",
+                        strokeWidth: 2
+                    })
+                ]);
+
+                ReactDOM.render(chart, document.getElementById('chart'));
+            } catch (error) {
+                console.error('Error fetching waste data:', error);
+            }
+        }
+
+        // Fetch initiatives data
+        async function fetchInitiatives() {
+            const token = checkAuth();
+            try {
+                const response = await fetch('http://localhost:5000/api/initiatives', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const initiatives = await response.json();
+                console.log('Initiatives:', initiatives);
+
+                // Count active initiatives
+                const activeInitiatives = initiatives.filter(initiative => 
+                    initiative.status === 'active' || initiative.status === 'upcoming'
+                );
+                document.getElementById('active-initiatives').textContent = activeInitiatives.length;
+
+                // Update upcoming events text
+                const upcomingEvents = initiatives.filter(initiative => 
+                    initiative.status === 'upcoming'
+                );
+                const upcomingText = document.querySelector('#active-initiatives + p');
+                upcomingText.textContent = `${upcomingEvents.length} upcoming events`;
+            } catch (error) {
+                console.error('Error fetching initiatives:', error);
+            }
+        }
+
+        // Fetch recent activities
+        async function fetchActivities() {
+            const token = checkAuth();
+            try {
+                // Fetch waste logs for activities
+                const wasteResponse = await fetch('http://localhost:5000/api/waste/logs', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const wasteLogs = await wasteResponse.json();
+                console.log('Waste logs for activities:', wasteLogs);
+
+                // Fetch social feed
+                const feedResponse = await fetch('http://localhost:5000/api/social/feed', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const socialFeed = await feedResponse.json();
+                console.log('Social feed:', socialFeed);
+
+                // Combine and sort activities
+                const allActivities = [
+                    ...wasteLogs.map(log => ({
+                        type: 'waste',
+                        description: `Logged ${log.amount} kg of ${log.category} waste`,
+                        timestamp: log.timestamp
+                    })),
+                    ...socialFeed.map(activity => ({
+                        type: activity.type,
+                        description: activity.description,
+                        timestamp: activity.timestamp
+                    }))
+                ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                const activitiesContainer = document.getElementById('activities');
+                activitiesContainer.innerHTML = allActivities.map(activity => `
+                    <div class="flex items-start">
+                        <div class="h-8 w-8 rounded-full ${getActivityColor(activity.type)} flex-shrink-0 flex items-center justify-center">
+                            <span class="text-white text-sm">${getActivityIcon(activity.type)}</span>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-gray-900">${activity.description}</p>
+                            <p class="text-gray-500 text-sm">${formatTime(activity.timestamp)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching activities:', error);
+            }
+        }
+
+        // Helper functions
+        function getActivityColor(type) {
+            const colors = {
+                waste: 'bg-green-500',
+                initiative: 'bg-blue-500',
+                review: 'bg-yellow-500'
+            };
+            return colors[type] || 'bg-gray-500';
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                waste: '♻️',
+                initiative: '👥',
+                review: '⭐'
+            };
+            return icons[type] || '📝';
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 3600000) { // Less than 1 hour
+                const minutes = Math.floor(diff / 60000);
+                return `${minutes} minutes ago`;
+            } else if (diff < 86400000) { // Less than 1 day
+                const hours = Math.floor(diff / 3600000);
+                return `${hours} hours ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+
+        // Initialize dashboard
+        async function initDashboard() {
+            await fetchWasteData();
+            await fetchInitiatives();
+            await fetchActivities();
+        }
+
+        // Start the application
+        initDashboard();
+    </script>
+</body>
+</html>
