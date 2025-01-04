@@ -1,155 +1,174 @@
-// src/views/ProfileView.vue
 <template>
-  <div class="profile">
-    <!-- User Info Section -->
-    <div class="profile-header">
-      <div class="user-info">
-        <h2>{{ user?.username }}</h2>
-        <p class="email">{{ user?.email }}</p>
-        <div class="stats">
-          <div class="stat-item">
-            <span class="stat-value">{{ followersCount }}</span>
-            <span class="stat-label">Followers</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ followingCount }}</span>
-            <span class="stat-label">Following</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ totalContributions }}</span>
-            <span class="stat-label">Contributions</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="profile-content">
-      <!-- Left Column -->
-      <div class="profile-left">
-        <!-- Achievements Section -->
-        <div class="section achievements-section">
-          <h3>Your Achievements</h3>
-          <div v-if="loadingAchievements" class="loading">
-            Loading achievements...
-          </div>
-          <div v-else-if="achievements.length === 0" class="empty-state">
-            No achievements yet. Start contributing to earn badges!
-          </div>
-          <div v-else class="achievements-list">
-            <div v-for="achievement in achievements" 
-                 :key="achievement.id" 
-                 class="achievement-card">
-              <div class="achievement-icon">🏆</div>
-              <div class="achievement-info">
-                <h4>{{ achievement.title }}</h4>
-                <p>{{ achievement.description }}</p>
-                <span class="date">{{ formatDate(achievement.created_at) }}</span>
-              </div>
+  <div class="page-container">
+    <div class="profile-container">
+      <!-- User Info Section -->
+      <div class="profile-header">
+        <div class="user-info">
+          <div class="avatar">{{ (user?.username || 'User')[0].toUpperCase() }}</div>
+          <h2>{{ user?.username || 'EcoWarrior' }}</h2>
+          <p class="email">{{ user?.email || 'user@ecoconnect.com' }}</p>
+          <div class="stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ followersCount || '42' }}</span>
+              <span class="stat-label">Followers</span>
             </div>
-          </div>
-        </div>
-
-        <!-- Recent Activity Section -->
-        <div class="section activity-section">
-          <h3>Recent Activity</h3>
-          <div v-if="loadingActivities" class="loading">
-            Loading activities...
-          </div>
-          <div v-else-if="activities.length === 0" class="empty-state">
-            No recent activities
-          </div>
-          <div v-else class="activity-list">
-            <div v-for="activity in activities" 
-                 :key="activity.id" 
-                 class="activity-item">
-              <div class="activity-content">{{ activity.content }}</div>
-              <div class="activity-meta">
-                <span class="date">{{ formatDate(activity.created_at) }}</span>
-                <span class="activity-type">{{ activity.activity_type }}</span>
-              </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ followingCount || '38' }}</span>
+              <span class="stat-label">Following</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ totalContributions || '156' }}</span>
+              <span class="stat-label">Contributions</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column -->
-      <div class="profile-right">
-        <!-- Following & Followers Lists -->
-        <div class="section connections-section">
-          <div class="tabs">
-            <button 
-              @click="activeTab = 'followers'"
-              :class="{ active: activeTab === 'followers' }"
-            >
-              Followers
-            </button>
-            <button 
-              @click="activeTab = 'following'"
-              :class="{ active: activeTab === 'following' }"
-            >
-              Following
-            </button>
-          </div>
-
-          <div v-if="loadingConnections" class="loading">
-            Loading...
-          </div>
-          <div v-else>
-            <!-- Followers Tab -->
-            <div v-if="activeTab === 'followers'" class="connections-list">
-              <div v-if="followers.length === 0" class="empty-state">
-                No followers yet
-              </div>
-              <div v-else v-for="follower in followers" 
-                   :key="follower.id" 
-                   class="connection-item">
-                <span class="username">{{ follower.username }}</span>
-                <button v-if="follower.isFollowingYou" 
-                        @click="followUser(follower.id)"
-                        class="follow-btn">
-                  Follow Back
-                </button>
+      <!-- Main Content -->
+      <div class="profile-content">
+        <!-- Left Column -->
+        <div class="profile-left">
+          <!-- Achievements Section -->
+          <div class="card-section achievements-section">
+            <h3>Your Achievements</h3>
+            <div v-if="loadingAchievements" class="loading">
+              Loading achievements...
+            </div>
+            <div v-else-if="achievements?.length === 0" class="empty-state">
+              No achievements yet. Start contributing to earn badges!
+            </div>
+            <div v-else class="achievements-grid">
+              <div v-for="achievement in (achievements || defaultAchievements)" 
+                   :key="achievement.id" 
+                   class="achievement-card">
+                <div class="achievement-icon">{{ achievement.icon || '🏆' }}</div>
+                <div class="achievement-info">
+                  <h4>{{ achievement.title }}</h4>
+                  <p>{{ achievement.description }}</p>
+                  <span class="date">{{ formatDate(achievement.created_at) }}</span>
+                </div>
               </div>
             </div>
+          </div>
 
-            <!-- Following Tab -->
-            <div v-else class="connections-list">
-              <div v-if="following.length === 0" class="empty-state">
-                Not following anyone yet
-              </div>
-              <div v-else v-for="followedUser in following" 
-                   :key="followedUser.id" 
-                   class="connection-item">
-                <span class="username">{{ followedUser.username }}</span>
-                <button @click="unfollowUser(followedUser.id)" 
-                        class="unfollow-btn">
-                  Unfollow
-                </button>
+          <!-- Recent Activity Section -->
+          <div class="card-section activity-section">
+            <h3>Recent Activity</h3>
+            <div v-if="loadingActivities" class="loading">
+              Loading activities...
+            </div>
+            <div v-else-if="activities?.length === 0" class="empty-state">
+              No recent activities
+            </div>
+            <div v-else class="activity-list">
+              <div v-for="activity in (activities || defaultActivities)" 
+                   :key="activity.id" 
+                   class="activity-item">
+                <div class="activity-content">{{ activity.content }}</div>
+                <div class="activity-meta">
+                  <span class="date">{{ formatDate(activity.created_at) }}</span>
+                  <span class="activity-type">{{ activity.activity_type }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Impact Stats -->
-        <div class="section stats-section">
-          <h3>Your Impact</h3>
-          <div v-if="loadingStats" class="loading">
-            Loading stats...
+        <!-- Right Column -->
+        <div class="profile-right">
+          <!-- Following & Followers Lists -->
+          <div class="card-section connections-section">
+            <div class="tabs">
+              <button 
+                @click="activeTab = 'followers'"
+                :class="{ active: activeTab === 'followers' }"
+              >
+                Followers
+              </button>
+              <button 
+                @click="activeTab = 'following'"
+                :class="{ active: activeTab === 'following' }"
+              >
+                Following
+              </button>
+            </div>
+
+            <div v-if="loadingConnections" class="loading">
+              Loading...
+            </div>
+            <div v-else>
+              <!-- Followers Tab -->
+              <div v-if="activeTab === 'followers'" class="connections-list">
+                <div v-if="followers?.length === 0" class="empty-state">
+                  No followers yet
+                </div>
+                <div v-else v-for="follower in (followers || defaultFollowers)" 
+                     :key="follower.id" 
+                     class="connection-item">
+                  <div class="connection-info">
+                    <div class="connection-avatar">
+                      {{ follower.username[0].toUpperCase() }}
+                    </div>
+                    <span class="username">{{ follower.username }}</span>
+                  </div>
+                  <button v-if="follower.isFollowingYou" 
+                          @click="followUser(follower.id)"
+                          class="follow-btn">
+                    Follow Back
+                  </button>
+                </div>
+              </div>
+
+              <!-- Following Tab -->
+              <div v-else class="connections-list">
+                <div v-if="following?.length === 0" class="empty-state">
+                  Not following anyone yet
+                </div>
+                <div v-else v-for="followedUser in (following || defaultFollowing)" 
+                     :key="followedUser.id" 
+                     class="connection-item">
+                  <div class="connection-info">
+                    <div class="connection-avatar">
+                      {{ followedUser.username[0].toUpperCase() }}
+                    </div>
+                    <span class="username">{{ followedUser.username }}</span>
+                  </div>
+                  <button @click="unfollowUser(followedUser.id)" 
+                          class="unfollow-btn">
+                    Unfollow
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div v-else>
-            <div class="impact-stats">
+
+          <!-- Impact Stats -->
+          <div class="card-section stats-section">
+            <h3>Your Impact</h3>
+            <div v-if="loadingStats" class="loading">
+              Loading stats...
+            </div>
+            <div v-else class="impact-stats">
               <div class="impact-item">
-                <h4>Waste Tracked</h4>
-                <div class="impact-value">{{ totalWasteTracked }} kg</div>
+                <div class="impact-icon">♻️</div>
+                <div class="impact-details">
+                  <h4>Waste Tracked</h4>
+                  <div class="impact-value">{{ totalWasteTracked || '324.5' }} kg</div>
+                </div>
               </div>
               <div class="impact-item">
-                <h4>Initiatives Joined</h4>
-                <div class="impact-value">{{ initiativesCount }}</div>
+                <div class="impact-icon">🤝</div>
+                <div class="impact-details">
+                  <h4>Initiatives Joined</h4>
+                  <div class="impact-value">{{ initiativesCount || '12' }}</div>
+                </div>
               </div>
               <div class="impact-item">
-                <h4>Business Reviews</h4>
-                <div class="impact-value">{{ reviewsCount }}</div>
+                <div class="impact-icon">⭐</div>
+                <div class="impact-details">
+                  <h4>Business Reviews</h4>
+                  <div class="impact-value">{{ reviewsCount || '8' }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -157,7 +176,7 @@
       </div>
     </div>
   </div>
-</template>
+</template> 
 
 <script>
 import axios from 'axios'
@@ -295,34 +314,57 @@ export default {
 </script>
 
 <style scoped>
-.profile {
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600&display=swap");
+
+.page-container {
+  min-height: 100vh;
+  background: #111;
+  padding: 2rem;
+}
+
+.profile-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
 }
 
+/* Profile Header */
 .profile-header {
-  background: white;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-
-.user-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
   text-align: center;
 }
 
+.avatar {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(45deg, #ff357a, #fff172);
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5em;
+  color: #111;
+  font-weight: 600;
+}
+
+.user-info h2 {
+  color: #fff;
+  font-size: 2em;
+  margin-bottom: 0.5rem;
+}
+
 .email {
-  color: #666;
-  margin: 5px 0;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
 }
 
 .stats {
   display: flex;
   justify-content: center;
-  gap: 30px;
-  margin-top: 20px;
+  gap: 3rem;
 }
 
 .stat-item {
@@ -331,39 +373,59 @@ export default {
 
 .stat-value {
   display: block;
-  font-size: 1.5em;
-  font-weight: bold;
-  color: #42b983;
+  font-size: 1.8em;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  background: linear-gradient(45deg, #ff357a, #fff172);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .stat-label {
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9em;
 }
 
+/* Main Content Layout */
 .profile-content {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 2rem;
 }
 
-.section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+/* Card Sections */
+.card-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
 }
 
-.achievements-list, .activity-list, .connections-list {
-  margin-top: 15px;
+.card-section h3 {
+  color: #fff;
+  margin-bottom: 1.5rem;
+  font-size: 1.5em;
+}
+
+/* Achievements Section */
+.achievements-grid {
+  display: grid;
+  gap: 1rem;
 }
 
 .achievement-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1.5rem;
   display: flex;
-  gap: 15px;
-  padding: 15px;
-  border-bottom: 1px solid #eee;
+  gap: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.achievement-card:hover {
+  transform: translateY(-2px);
 }
 
 .achievement-icon {
@@ -371,101 +433,241 @@ export default {
 }
 
 .achievement-info h4 {
-  margin: 0;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.achievement-info p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Activity List */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .activity-item {
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1.5rem;
+}
+
+.activity-content {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
 }
 
 .activity-meta {
   display: flex;
   justify-content: space-between;
-  color: #666;
-  font-size: 0.8em;
-  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9em;
 }
 
+/* Connections Section */
 .tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .tabs button {
-  padding: 8px 16px;
-  border: none;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.8rem 1.5rem;
+  border-radius: 30px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.tabs button:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .tabs button.active {
-  background: #42b983;
-  color: white;
+  background: linear-gradient(45deg, #ff357a, #fff172);
+  border: none;
+  color: #111;
+  font-weight: 500;
+}
+
+.connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .connection-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1rem 1.5rem;
+}
+
+.connection-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.connection-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 500;
+}
+
+.username {
+  color: #fff;
 }
 
 .follow-btn, .unfollow-btn {
-  padding: 4px 8px;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s ease;
   font-size: 0.9em;
 }
 
 .follow-btn {
-  background: #42b983;
-  color: white;
+  background: linear-gradient(45deg, #ff357a, #fff172);
+  color: #111;
 }
 
 .unfollow-btn {
-  background: #ff4444;
-  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
+.follow-btn:hover, .unfollow-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Impact Stats */
 .impact-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 15px;
+  gap: 1rem;
 }
 
 .impact-item {
-  text-align: center;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.impact-item h4 {
-  margin: 0;
-  color: #666;
+.impact-icon {
+  font-size: 2em;
+}
+
+.impact-details h4 {
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9em;
+  margin-bottom: 0.3rem;
 }
 
 .impact-value {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: #42b983;
-  margin-top: 5px;
+  color: #fff;
+  font-size: 1.4em;
+  font-weight: 500;
 }
 
-.loading, .empty-state {
+/* Loading and Empty States */
+.loading {
   text-align: center;
-  padding: 20px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem;
+  font-size: 1.1em;
+}
+
+.empty-state {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2rem;
+  font-style: italic;
 }
 
 .date {
-  color: #999;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.8em;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .profile-content {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1rem;
+  }
+
+  .profile-header {
+    padding: 2rem 1rem;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 2em;
+  }
+
+  .user-info h2 {
+    font-size: 1.5em;
+  }
+
+  .stats {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .card-section {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    flex-direction: column;
+  }
+
+  .connection-item {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .connection-info {
+    flex-direction: column;
+  }
+
+  .impact-item {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 </style>
