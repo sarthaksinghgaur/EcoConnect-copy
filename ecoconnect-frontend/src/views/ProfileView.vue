@@ -263,7 +263,7 @@ export default {
     async fetchStats() {
       this.loadingStats = true
       try {
-        const wasteResponse = await axios.get('http://localhost:5000/api/waste/stats')
+        const wasteResponse = await axios.get('http://localhost:5050/api/waste/stats')
         this.totalWasteTracked = Object.values(wasteResponse.data.category_totals || {})
           .reduce((sum, val) => sum + val, 0)
         
